@@ -1,3 +1,4 @@
+import os
 # AWS SETTINGS
 SECRET_KEY = '...'
 PUBLIC_KEY = '...'
@@ -21,5 +22,5 @@ MARGIN = 44
 GPU_FRACTION = 1.0
 MTCNN_THRESHOLD = [0.6, 0.7, 0.7]
 MTCNN_FACTOR = 0.709
-DETECTOR_PATH = '/home/billy/sanus_face_server/model/mmod_human_face_detector.dat'
-PREDICTOR_PATH = '/home/billy/sanus_face_server/model/shape_predictor_5_face_landmarks.dat'
+DETECTOR_PATH = os.path.abspath('') + '/model/mmod_human_face_detector.dat'
+PREDICTOR_PATH = os.path.abspath('') + '/model/shape_predictor_5_face_landmarks.dat'
