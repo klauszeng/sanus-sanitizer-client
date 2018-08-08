@@ -1,6 +1,6 @@
 import sys, os, requests, time, json, picamera, io, base64
 import numpy as np
-from PIL import Image
+from PIL import image
 
 class PiClient:
     def __init__(self):

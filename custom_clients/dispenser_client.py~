@@ -97,16 +97,15 @@ if __name__ == "__main__":
 		#read distance
 		a = sensor.read_distance()
 		print a 
-		if a <= 100:
+		if a > 100:
 			GPIO.output(18, True)
 			time.sleep(0.5)
 			GPIO.output(18, False)
-			client.capture_and_post()
 		else:
 			GPIO.output(23, True)
 			time.sleep(0.5)
 			GPIO.output(23, False)
-			
+			client.capture_and_post()
 			
 		
 		
