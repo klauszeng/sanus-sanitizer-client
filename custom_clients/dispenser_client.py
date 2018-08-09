@@ -35,18 +35,18 @@ class DispenserClient:
 		self.alert.start()
 
 	def capture_and_post():
-	    # stream = io.BytesIO()
-	    # camera.capture(stream, format='jpeg')
-	    # stream.seek(0)
-	    self.camera.capture(self.image, 'rgb')
-	    image_temp = self.image.astype(np.float64)
-	    image_64 = base64.b64encode(image_temp)
-	    # image_64 = base64.b64encode(stream.getvalue()).decode('ascii')
-	    payload = {'NodeID': self.node_id, 'Timestamp': time.time(), 'Image': image_64, 'Shape': self.shape}
-	    headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
-	    result = requests.post(self.url, json=payload, headers=headers)
-	    print(result)
-	    return result
+		# stream = io.BytesIO()
+		# camera.capture(stream, format='jpeg')
+		# stream.seek(0)
+		self.camera.capture(self.image, 'rgb')
+		image_temp = self.image.astype(np.float64)
+		image_64 = base64.b64encode(image_temp)
+		# image_64 = base64.b64encode(stream.getvalue()).decode('ascii')
+		payload = {'NodeID': self.node_id, 'Timestamp': time.time(), 'Image': image_64, 'Shape': self.shape}
+		headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
+		result = requests.post(self.url, json=payload, headers=headers)
+		print(result)
+		return result
 
 	def read_distance():
 		distance = self.sensor.read_distance() #return an int
