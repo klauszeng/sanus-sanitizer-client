@@ -10,11 +10,11 @@ class DispenserClient:
 		'''
 		## camera 
 		self.camera = picamera.PiCamera()
-		self.camera.resolution = (1920, 1088) 
-		self.url = 'http://192.168.0.103:5000/sanushost/api/v1.0/sanitizer_img' ## Input
+		self.camera.resolution = (640, 480) # 640x480,1296x730,640x1080	
+		self.url = 'http://192.168.0.106:5000/sanushost/api/v1.0/sanitizer_img' ## Input
 		self.node_id = 'D1'
-		self.shape = '(1088, 1920, 3)' 
-		self.image = np.empty((1088, 1920, 3), dtype=np.uint8)
+		self.shape = '(480, 640, 3)' 
+		self.image = np.empty((480, 640, 3), dtype=np.uint8)
 		print('dispenser client camera initialized')
 
 		## distance sensor
@@ -45,7 +45,7 @@ class DispenserClient:
 		self.camera.capture(self.image, 'rgb')
 		self.camera.stop_preview()
 		image_temp = self.image.astype(np.float64)
-		image_64 = base64.b64encode(image_temp)
+		image_64 = base64.b64encode(image_temp).decode('ascii')
 		payload = {'NodeID': self.node_id, 'Timestamp': time.time(), 'Image': image_64, 'Shape': self.shape}
 		headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
 		result = requests.post(self.url, json=payload, headers=headers)
