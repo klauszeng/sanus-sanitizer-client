@@ -1,0 +1,15 @@
+DEBUG:root:dispenser client camera initialized
+DEBUG:VL6180X, I2C[1]:0x29:Read  [0x0000] => 0xB4 (180 as byte)
+DEBUG:VL6180X, I2C[1]:0x29:VL6180X sensor found: chip id is 0xB4 
+DEBUG:VL6180X, I2C[1]:0x29:Read  [0x0016] => 0x00 (0 as byte)
+DEBUG:root:dispenser client TOF sensor initialized
+DEBUG:root:dispenser client GPIO check
+DEBUG:root:dispenser client message queue initialized
+DEBUG:root:dispenser client alert thread initialized
+DEBUG:root:dispenser client initialized successfully
+DEBUG:VL6180X, I2C[1]:0x29:Write [0x0018] <= 0x01 (1 as byte)
+DEBUG:VL6180X, I2C[1]:0x29:Read  [0x004F] => 0x04 (4 as byte)
+DEBUG:VL6180X, I2C[1]:0x29:Read  [0x0062] => 0xFF (255 as byte)
+DEBUG:VL6180X, I2C[1]:0x29:Write [0x0015] <= 0x07 (7 as byte)
+DEBUG:VL6180X, I2C[1]:0x29:Distance is 255 mm
+DEBUG:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): 192.168.0.103
