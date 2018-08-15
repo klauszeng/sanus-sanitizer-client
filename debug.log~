@@ -1,0 +1,40 @@
+INFO:main_dispenser_logger:logger initialized
+INFO:dispenser_logger:logger initialized
+INFO:dispenser_logger:dispenser client camera initialized
+INFO:dispenser_logger:dispenser client TOF sensor initialized
+INFO:dispenser_logger:dispenser client GPIO check
+INFO:dispenser_logger:dispenser client message queue initialized
+INFO:dispenser_logger:dispenser client message queue initialized
+INFO:main_dispenser_logger:dispenser client initialized
+INFO:main_dispenser_logger:logger initialized
+INFO:dispenser_logger:logger initialized
+INFO:dispenser_logger:dispenser client camera initialized
+INFO:dispenser_logger:dispenser client TOF sensor initialized
+INFO:dispenser_logger:dispenser client GPIO check
+INFO:dispenser_logger:dispenser client message queue initialized
+INFO:dispenser_logger:dispenser client message queue initialized
+INFO:main_dispenser_logger:dispenser client initialized
+INFO:main_dispenser_logger:logger initialized
+INFO:dispenser_logger:logger initialized
+INFO:dispenser_logger:dispenser client camera initialized, start_preview executed
+INFO:dispenser_logger:dispenser client TOF sensor initialized
+INFO:dispenser_logger:dispenser client GPIO check
+INFO:dispenser_logger:dispenser client message queue initialized
+INFO:main_dispenser_logger:logger initialized
+INFO:dispenser_logger:logger initialized
+INFO:dispenser_logger:dispenser client camera initialized, start_preview executedINFO:dispenser main loop logger:dispenser client camera initialized, start_preview executed
+INFO:dispenser main loop logger:dispenser client camera initialized, start_preview executed
+INFO:dispenser main loop logger:dispenser client GPIO check
+INFO:dispenser main loop logger:dispenser client message queue initialized
+INFO:dispenser main loop logger:dispenser client camera initialized, start_preview executed
+INFO:dispenser main loop logger:dispenser client GPIO check
+INFO:dispenser main loop logger:dispenser client message queue initialized
+INFO:dispenser main loop logger:dispenser client camera initialized, start_preview executed
+INFO:dispenser main loop logger:dispenser client GPIO check
+INFO:dispenser main loop logger:dispenser client message queue initialized
+INFO:dispenser main loop logger:dispenser client camera initialized, start_preview executed
+INFO:dispenser main loop logger:dispenser client GPIO check
+INFO:dispenser main loop logger:dispenser client message queue initialized
+INFO:dispenser main loop logger:dispenser client camera initialized, start_preview executed
+INFO:dispenser main loop logger:dispenser client GPIO check
+INFO:dispenser main loop logger:dispenser client message queue initialized

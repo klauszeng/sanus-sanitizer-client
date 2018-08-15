@@ -97,7 +97,7 @@ class dispenser_thread(threading.Thread):
         while 1:
             if self.payload_queue.qsize():
                 payload, headers, url = self.payload_queue.get()
-                respond = requests.post(url, json=payload, headers=headers)
+                respond = requests.post(self.url, json=payload, headers=headers)
                 if respond == 'timeout': #HTTP protocol return message looks different, change this
                     self.storage_queue.put(payload, headers)
                     self.logger.debug('payload moved from payload queue to storage due to %s', respond)
