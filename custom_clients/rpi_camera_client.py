@@ -1,9 +1,7 @@
 """
-    AN IMPORTANT NOTE:
-    This is just an outline code without API calls and filler functions. I just wrote this to get the general idea
-    to see how things will work together
+    Author: Luka Antolic-Soban
+    
 """
-
 import RPi.GPIO as GPIO
 import time
 import queue
