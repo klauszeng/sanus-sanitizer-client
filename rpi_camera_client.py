@@ -45,21 +45,6 @@ class PiClient:
         SERVER_PORT = '5000'
         # API url       THE SERVER HOST AND PORT WILL BE IN CONFIG FILE LATER
         self.url = 'http://' + SERVER_HOST + ':' + SERVER_PORT + '/sanushost/api/v1.0/entry_img'
-
-        
-    def fire_alert(self):
-        print("Alert! Wash your hands!")
-
-    # again, placeholder/fake function to take place of the real API
-    def request_faces(self,job_id):
-        # placeholder bullshit function - API will be here
-        rand = random.randint(1,100)
-        if(rand >= 1 and rand <= 1000):
-            return "faces"
-        elif(rand >= 1001 and rand <= 2000):
-            return "all clear"
-        elif(rand >= 2001 and rand <= 3000):
-            return "timeout"
         
     # peek at head of pqueue
     def peek_timestamp_at_head(self):
@@ -74,12 +59,6 @@ class PiClient:
             return self.msgqueue.queue[0][0]
         else:
             return -1
-
-    #placeholder function for generating job_id
-    def generate_job_id(self):
-        print("generating job_id")
-        job_id = random.randint(1,1000)
-        return job_id
 
     # placeholder function for sending photo and getting a job_id
     def capture_and_send(self, NODE_ID, timestamp, img_buffer, img_size):
@@ -119,11 +98,44 @@ class PiClient:
                 
     # thread for posting and waiting for HTTP response
     def http_thread(self, NODE_ID, timestamp, img_buffer, img_size):
-    	
         job_id,timestamp = client.capture_and_send(client.NODE_ID, timestamp, img_buffer, img_size)
         client.pqueue.put((timestamp,job_id))
-                   
+      
+
+######################################################################################################################################################
+    #combining control_thread and http_thread 
+    '''
+    within capture_and_post():
         
+        payload = {'NodeID': NODE_ID, 'Timestamp': [timestamp], 'Image': img_buffer, 'Shape': img_size}
+        headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
+        client.pqueue.put((payload, headers))
+
+    def control_thread(self, NODE_ID, timestamp, img_buffer, img_size):
+
+        while(True):
+            if [client].pqueue.size() and time.time() >= self.peek_timestamp_at_head() and not self.peek_timestamp_at_head() == -1: 
+                payload, headers = [client].pqueue.get()
+                result = client.capture_and_send(client.NODE_ID, timestamp, img_buffer, img_size)
+                if result == True: #
+                    DO NOTHING
+                elseif result == False:
+                    msqueue.put((timestamp, message))
+
+    def alert_thread():
+        
+        while(true):
+            if self.msqueue.qsize():
+                timestamp, message = msqueue.get() 
+                if timestamp + 30 > time.time():
+                    time.sleep(time.time() - timestamp + 30)
+                TextToSpeech.speak(message)
+                time.sleep(3)
+                ## need to think about the duplicate message. For demoday, make sure there aren't multiple messages 
+    '''
+
+######################################################################################################################################################
+
 #### MAIN ####
 if __name__ == '__main__':
     client = PiClient()
@@ -155,7 +167,7 @@ if __name__ == '__main__':
             image_temp = img.astype(np.float64)
             image_64 = base64.b64encode(image_temp).decode('ascii')
             
-            # send to HTTP thread
+            # send to HTTP thread (http thread is not actually running as a thread but as a function)
             http_thread = threading.Thread(kwargs={'NODE_ID': client.NODE_ID,'timestamp': timestamp, 'img_buffer': image_64, 'img_size': client.shape}, target=client.http_thread)
             http_thread.daemon = True
             http_thread.start()
