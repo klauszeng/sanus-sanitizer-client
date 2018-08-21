@@ -11,10 +11,11 @@ class DispenserClient:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger('dispenser main loop logger')
         ## create a file handler
-        handler = logging.FileHandler('dispenser_main.log')
+        handler = logging.FileHandler('dispenser_object.log')
         handler.setLevel(logging.INFO)
         ## create a logging format: time - name of logger - level - message
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
         handler.setFormatter(formatter)
         ## add the handlers to the logger
         self.logger.addHandler(handler)
@@ -23,51 +24,37 @@ class DispenserClient:
         self.camera = picamera.PiCamera()
         self.camera.resolution = (640, 480) # 640x480,1296x730,640x1080, 1920x1088
         self.url = 'http://192.168.0.106:5000/sanushost/api/v1.0/sanitizer_img' ## Input
-        self.node_id = 'D1'
+        self.node_id = 'demo_sanitizer'
         self.shape = '(480, 640, 3)' 
         self.image = np.empty((480, 640, 3), dtype=np.uint8)
         self.camera.start_preview(fullscreen=False, window = (0,0,0,0)) #100 20 640 480
-        self.logger.info('dispenser client camera initialized, start_preview executed')
-
-        # distance sensor
-        ##self.sensor = proximity.VL6180X(1)
-        ##self.logger.info('dispenser client TOF sensor initialized')
+        self.logger.debug(
+            'dispenser client camera initialized, start_preview executed')
         
-
         # GPIO - LED & Distance Sensor
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(18, GPIO.OUT)
         GPIO.setup(23, GPIO.OUT)
         GPIO.setup(21, GPIO.IN)
-        self.logger.info('dispenser client GPIO check')
+        self.logger.debug('dispenser client GPIO check')
 
         # temporary data structure for storage
         self.payload_queue =  queue.Queue() 
-        self.logger.info('dispenser client payload queue initialized')
+        self.logger.debug('dispenser client payload queue initialized')
 
         # post thread instantiate 
         self.post_thread = dispenser_thread("post thread", self.payload_queue)
         self.post_thread.daemon = True 
         self.post_thread.start()
-        self.logger.info('dispenser client post thread initialized')
-
-    ''' Clean up later
-    def capture_and_post(self):
-        self.camera.capture(self.image, 'rgb')
-        image_temp = self.image.astype(np.float64)
-        image_64 = base64.b64encode(image_temp).decode('ascii')
-        payload = {'NodeID': self.node_id, 'Timestamp': time.time(), 'Image': image_64, 'Shape': self.shape}
-        headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
-        result = requests.post(self.url, json=payload, headers=headers)
-        return result
-        '''
+        self.logger.debug('dispenser client post thread initialized')
 
     def capture(self):
         self.camera.capture(self.image, 'rgb')
         image_temp = self.image.astype(np.float64)
         image_64 = base64.b64encode(image_temp).decode('ascii')
-        payload = {'NodeID': self.node_id, 'Timestamp': time.time(), 'Image': image_64, 'Shape': self.shape}
+        payload = {'NodeID': self.node_id, 'Timestamp': time.time(),
+             'Image': image_64, 'Shape': self.shape}
         headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
         self.payload_queue.put((payload, headers, self.url))
         self.logger.debug('payload: %s, headers: %s', str(payload), str(headers))
@@ -83,7 +70,8 @@ class dispenser_thread(threading.Thread):
         self.logger = logging.getLogger('dispenser sub-loop logger')
         handler = logging.FileHandler('dispenser_thead.log')
         handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
@@ -95,6 +83,16 @@ class dispenser_thread(threading.Thread):
 
     def run(self):
         while 1:
+            ## demo day hard code
+            if self.payload_queue.qsize():
+                cur_time = time.time()
+                payload, headers, url = self.payload_queue.get()
+                respond = requests.post(url, json=payload, headers=headers)
+                self.logger.info('payload received by http thread,' +
+                    'respond return from server in: %f s. Status: %s', 
+                        time.time() - cur_time, respond[0]) # beaware respond type 
+
+            '''
             if self.payload_queue.qsize():
                 payload, headers, url = self.payload_queue.get()
                 respond = requests.post(url, json=payload, headers=headers)
@@ -104,10 +102,10 @@ class dispenser_thread(threading.Thread):
                 elif respond == 'overload':
                     self.storage_queue.put(payload, headers)
                     self.logger.debug('payload moved from payload queue to storage due to %s', respond)
-                elif respond == 'noface':
+                elif respond == 'False':
                     self.logger.debug('exit loop due to %s', respond)
                     pass
-                elif respond == 'face':
+                elif respond == 'True':
                     self.logger.debug('exit loop due to %s', respond)
                     pass
             elif self.storage_queue.qsize():
@@ -120,19 +118,20 @@ class dispenser_thread(threading.Thread):
                 elif respond == 'overload':
                     self.storage_queue.put(payload, headers)
                     self.logger.debug('try again later  due to %s', respond)
-                elif respond == 'noface':
+                elif respond == 'False':
                     self.logger.debug('exit loop due to %s', respond)
                     pass
-                elif respond == 'face':
+                elif respond == 'True':
                     self.logger.debug('exit loop due to %s', respond)
-                    pass
+                    pass'''
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger('main dispenser logger')
-    handler = logging.FileHandler('debug.log')
+    handler = logging.FileHandler('main.log')
     handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
@@ -151,6 +150,7 @@ if __name__ == "__main__":
             GPIO.output(23, True)
             cur_time = time.time()
             respond = client.capture()
-            logger.info('capture successfully, respond returns in: %f s', time.time() - cur_time)
+            logger.info('capture successfully, camera captured images returns in:' +
+                 '%f s, now forwarding payload to http thread.', time.time() - cur_time)
             GPIO.output(23, False)
     sys.exit()
