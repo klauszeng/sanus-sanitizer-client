@@ -46,6 +46,11 @@ class PiClient:
         # API url       THE SERVER HOST AND PORT WILL BE IN CONFIG FILE LATER
         self.url = 'http://' + SERVER_HOST + ':' + SERVER_PORT + '/sanushost/api/v1.0/entry_img'
         
+        
+    def send_alert(self,message):
+        #SEND VOICE ALERT
+        print(message)
+        
     # peek at head of pqueue
     def peek_timestamp_at_head(self):
         if(not self.pqueue.empty()):
@@ -61,45 +66,62 @@ class PiClient:
             return -1
 
     # placeholder function for sending photo and getting a job_id
-    def capture_and_send(self, NODE_ID, timestamp, img_buffer, img_size):
+    def capture_and_process(self, NODE_ID, timestamp, img_buffer, img_size):
         payload = {'NodeID': NODE_ID, 'Timestamp': [timestamp], 'Image': img_buffer, 'Shape': img_size}
         headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
-        result = requests.post(self.url, json=payload, headers=headers)        
         
-        print(result.json())
+        # the timestamp, payload, and header will be saved so that we can make another post request to determine HH status
+        client.pqueue.put((timestamp, payload, headers))
         
-        job_id = self.generate_job_id()
-        return (job_id,timestamp)
+        
+##        result = requests.post(self.url, json=payload, headers=headers)        
+##        
+##        print(result.json())
+##        
+##        job_id = self.generate_job_id()
+##        return (job_id,timestamp)
 
     def control_thread(self): # always running on startup
         while(True):
             if(time.time() >= self.peek_timestamp_at_head() and not self.peek_timestamp_at_head() == -1):
                 print("executing control thread")
-                # dequeue and send job_id to server to request faces
-                timestamp,job_id = self.pqueue.get()
-                face_message = self.request_faces(job_id)
-                if(face_message == "faces"):
-                    self.msgqueue.put((time.time(),job_id)) #current time
-                    print("placing in msgqueue")
-                elif(face_message == "timeout"):
-                    # put the job back in the queue and try again
-                    pqueue.put((timestamp,job_id))
+                
+                # dequeue and post request to get face statistics 
+                timestamp, payload, headers = self.pqueue.get()
+                result = requests.post(self.url, json=payload, headers=headers)
+                print(result.json())
+                
+                
+                # Determine status of person, if there is a staff member face and they are not on dispenser list
+                self.msgqueue.put(((time.time()+30),payload, headers))
+                print("placing in msgqueue")
+                
+##                if(face_message == "faces"):
+##                    self.msgqueue.put((time.time(),job_id)) #current time
+##                    print("placing in msgqueue")
+##                elif(face_message == "timeout"):
+##                    # put the job back in the queue and try again
+##                    pqueue.put((timestamp,job_id))
+
 
     # thread that will only grab jobs from msgqueue
     def alert_thread(self):
         while(True):
             
             if(not self.msgqueue.empty()):
-                # dequeue head and then keep dequeuing until head is 1 second later than earliest timestamp        
-                timestamp,job_id = self.msgqueue.get()
-                while(self.peek_timestamp_at_alert() - timestamp < 1 and not self.peek_timestamp_at_alert() == -1):
-                    timestamp,job_id = msgqueue.get()
-                self.fire_alert()
                 
-    # thread for posting and waiting for HTTP response
-    def http_thread(self, NODE_ID, timestamp, img_buffer, img_size):
-        job_id,timestamp = client.capture_and_send(client.NODE_ID, timestamp, img_buffer, img_size)
-        client.pqueue.put((timestamp,job_id))
+                # dequeue head and then keep dequeuing until head is 1 second later than earliest timestamp
+                # Now that 30 sec have past, we need to check and see if they have actually washed their hands in that timeframe
+                timestamp, payload, headers = self.msgqueue.get()
+                
+                # send post request again and check result
+                # if there is a face, and it is staff, and they are still not in the dispenser list, send an alert 
+                result = requests.post(self.url, json=payload, headers=headers)
+                print(result.json())
+                
+                # if result is staff and not in dispenser list
+                # TODO: ADD VOICE LIBRARY FOR SOUND
+                self.send_alert("wash yo self")
       
 
 ######################################################################################################################################################
@@ -167,10 +189,7 @@ if __name__ == '__main__':
             image_temp = img.astype(np.float64)
             image_64 = base64.b64encode(image_temp).decode('ascii')
             
-            # send to HTTP thread (http thread is not actually running as a thread but as a function)
-            http_thread = threading.Thread(kwargs={'NODE_ID': client.NODE_ID,'timestamp': timestamp, 'img_buffer': image_64, 'img_size': client.shape}, target=client.http_thread)
-            http_thread.daemon = True
-            http_thread.start()
+            client.capture_and_process(client.NODE_ID, timestamp, image_64, client.shape)
             
             # sleep because of the sensor delay
             time.sleep(20)
