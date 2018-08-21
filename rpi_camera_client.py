@@ -31,6 +31,7 @@ class PiClient:
         self.camera = picamera.PiCamera()
         self.camera.resolution = (640, 480)
         self.camera.start_preview(fullscreen=False, window=(100, 20, 0, 0))
+        time.sleep(2)
         
         # entry queues
         self.pqueue = queue.PriorityQueue()
@@ -66,8 +67,8 @@ class PiClient:
             return -1
 
     # placeholder function for sending photo and getting a job_id
-    def capture_and_process(self, NODE_ID, timestamp, img_buffer, img_size):
-        payload = {'NodeID': NODE_ID, 'Timestamp': [timestamp], 'Image': img_buffer, 'Shape': img_size}
+    def prepare_and_process(self, NODE_ID, timestamp, img_buffer, img_size):
+        payload = {'NodeID': NODE_ID, 'Timestamp': timestamp, 'Image': img_buffer, 'Shape': img_size}
         headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
         
         # the timestamp, payload, and header will be saved so that we can make another post request to determine HH status
@@ -83,18 +84,18 @@ class PiClient:
 
     def control_thread(self): # always running on startup
         while(True):
-            if(time.time() >= self.peek_timestamp_at_head() and not self.peek_timestamp_at_head() == -1):
-                print("executing control thread")
+            if(not self.pqueue.empty()):
                 
                 # dequeue and post request to get face statistics 
                 timestamp, payload, headers = self.pqueue.get()
+                print("sending post req")
                 result = requests.post(self.url, json=payload, headers=headers)
+                
                 print(result.json())
                 
-                
                 # Determine status of person, if there is a staff member face and they are not on dispenser list
-                self.msgqueue.put(((time.time()+30),payload, headers))
-                print("placing in msgqueue")
+                self.msgqueue.put(((timestamp + 30), payload, headers))
+                #print("placing in msgqueue with timestamp: " + str(time.time()+30))
                 
 ##                if(face_message == "faces"):
 ##                    self.msgqueue.put((time.time(),job_id)) #current time
@@ -108,20 +109,37 @@ class PiClient:
     def alert_thread(self):
         while(True):
             
-            if(not self.msgqueue.empty()):
+            # check queue to see if it has passed 30 secs from current time
+            if(self.peek_timestamp_at_alert() == -1):
+                continue
+            elif(self.peek_timestamp_at_alert() - time.time() <= 0.0):
                 
                 # dequeue head and then keep dequeuing until head is 1 second later than earliest timestamp
                 # Now that 30 sec have past, we need to check and see if they have actually washed their hands in that timeframe
                 timestamp, payload, headers = self.msgqueue.get()
                 
                 # send post request again and check result
-                # if there is a face, and it is staff, and they are still not in the dispenser list, send an alert 
+                # if there is a face, and it is staff, and they are still not in the dispenser list, send an alert
+                print("sending 2nd post req for alert")
+                payload["Timestamp"] = time.time()
                 result = requests.post(self.url, json=payload, headers=headers)
-                print(result.json())
                 
                 # if result is staff and not in dispenser list
                 # TODO: ADD VOICE LIBRARY FOR SOUND
-                self.send_alert("wash yo self")
+                if(result.json()['Status'] == True):
+                    self.send_alert("Please wash your hands!")
+                if(result.json()['Status'] == False):
+                    self.send_alert("you are clean!")
+                
+                
+                # FOR WHEN SERVER RETURNS STATUS AND NAME
+                
+##                if(result.json()['Status'][0] == True and result.json()['Status'][1] == 'luka'):
+##                    self.send_alert("Luka please wash your hands!")
+##                elif(result.json()['Status'][0] == True and result.json()['Status'][1] == 'klaus'):
+##                    self.send_alert("Klaus please wash your hands!")
+##                elif(result.json()['Status'] == False):
+##                    self.send_alert("you are clean!")
       
 
 ######################################################################################################################################################
@@ -189,7 +207,7 @@ if __name__ == '__main__':
             image_temp = img.astype(np.float64)
             image_64 = base64.b64encode(image_temp).decode('ascii')
             
-            client.capture_and_process(client.NODE_ID, timestamp, image_64, client.shape)
+            client.prepare_and_process(client.NODE_ID, timestamp, image_64, client.shape)
             
             # sleep because of the sensor delay
             time.sleep(20)
