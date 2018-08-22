@@ -12,6 +12,10 @@ from PIL import Image
 import base64
 import numpy as np
 
+# Audio Alert imports
+##from pydub import AudioSegment
+##from pydub.playback import play
+
 class PiClient:
     
     def __init__(self):
@@ -47,10 +51,23 @@ class PiClient:
         # API url       THE SERVER HOST AND PORT WILL BE IN CONFIG FILE LATER
         self.url = 'http://' + SERVER_HOST + ':' + SERVER_PORT + '/sanushost/api/v1.0/entry_img'
         
+        # Load in all the audio first
+        self.LUKA_A = 'aplay -q lukaAlert.wav'
+        self.LUKA_W = 'aplay -q lukaWelcome.wav'
+        self.KLAUS_A = 'aplay -q klausAlert.wav'
+        self.KLAUS_W = 'aplay -q klausWelcome.wav'
+        
         
     def send_alert(self,message):
-        #SEND VOICE ALERT
-        print(message)
+        
+        if(message == "LUKA_A"):
+            os.system(self.LUKA_A)
+        elif(message == "LUKA_W"):
+            os.system(self.LUKA_W)
+        elif(message == "KLAUS_W"):
+            os.system(self.KLAUS_W)
+        elif(message == "KLAUS_A"):
+            os.system(self.KLAUS_A)
         
     # peek at head of pqueue
     def peek_timestamp_at_head(self):
@@ -74,29 +91,30 @@ class PiClient:
         # the timestamp, payload, and header will be saved so that we can make another post request to determine HH status
         client.pqueue.put((timestamp, payload, headers))
         
-        
-##        result = requests.post(self.url, json=payload, headers=headers)        
-##        
-##        print(result.json())
-##        
-##        job_id = self.generate_job_id()
-##        return (job_id,timestamp)
+
 
     def control_thread(self): # always running on startup
+        
         while(True):
             if(not self.pqueue.empty()):
                 
                 # dequeue and post request to get face statistics 
                 timestamp, payload, headers = self.pqueue.get()
                 print("sending post req")
+                debug = time.time()
                 result = requests.post(self.url, json=payload, headers=headers)
-                
                 print(result.json())
+                if(result.json()['Status'][0] == True and result.json()['Status'][1] == 'luka'):
+                    self.send_alert("LUKA_W")
+                if(result.json()['Status'][0] == True and result.json()['Status'][1] == 'klaus'):
+                    self.send_alert("KLAUS_W")
                 
                 # Determine status of person, if there is a staff member face and they are not on dispenser list
                 self.msgqueue.put(((timestamp + 30), payload, headers))
-                #print("placing in msgqueue with timestamp: " + str(time.time()+30))
-                
+
+
+
+
 ##                if(face_message == "faces"):
 ##                    self.msgqueue.put((time.time(),job_id)) #current time
 ##                    print("placing in msgqueue")
@@ -123,59 +141,27 @@ class PiClient:
                 print("sending 2nd post req for alert")
                 payload["Timestamp"] = time.time()
                 result = requests.post(self.url, json=payload, headers=headers)
-                
+                print(result.json())
                 # if result is staff and not in dispenser list
                 # TODO: ADD VOICE LIBRARY FOR SOUND
-                if(result.json()['Status'] == True):
-                    self.send_alert("Please wash your hands!")
-                if(result.json()['Status'] == False):
-                    self.send_alert("you are clean!")
+##                if(result.json()['Status'] == True):
+##                    self.send_alert("Please wash your hands!")
+##                    alert = AudioSegment.from_wav("lukaWelcome.wav")
+##                    play(alert)
+##                if(result.json()['Status'] == False):
+##                    self.send_alert("you are clean!")
                 
                 
                 # FOR WHEN SERVER RETURNS STATUS AND NAME
                 
-##                if(result.json()['Status'][0] == True and result.json()['Status'][1] == 'luka'):
-##                    self.send_alert("Luka please wash your hands!")
-##                elif(result.json()['Status'][0] == True and result.json()['Status'][1] == 'klaus'):
-##                    self.send_alert("Klaus please wash your hands!")
-##                elif(result.json()['Status'] == False):
-##                    self.send_alert("you are clean!")
+                if(result.json()['Status'][0] == True and result.json()['Status'][1] == 'luka'):
+                    self.send_alert("LUKA_A")
+                elif(result.json()['Status'][0] == True and result.json()['Status'][1] == 'klaus'):
+                    self.send_alert("KLAUS_A")
+                elif(result.json()['Status'][0] == False):
+                    self.send_alert("you are clean!")
       
-
-######################################################################################################################################################
-    #combining control_thread and http_thread 
-    '''
-    within capture_and_post():
-        
-        payload = {'NodeID': NODE_ID, 'Timestamp': [timestamp], 'Image': img_buffer, 'Shape': img_size}
-        headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
-        client.pqueue.put((payload, headers))
-
-    def control_thread(self, NODE_ID, timestamp, img_buffer, img_size):
-
-        while(True):
-            if [client].pqueue.size() and time.time() >= self.peek_timestamp_at_head() and not self.peek_timestamp_at_head() == -1: 
-                payload, headers = [client].pqueue.get()
-                result = client.capture_and_send(client.NODE_ID, timestamp, img_buffer, img_size)
-                if result == True: #
-                    DO NOTHING
-                elseif result == False:
-                    msqueue.put((timestamp, message))
-
-    def alert_thread():
-        
-        while(true):
-            if self.msqueue.qsize():
-                timestamp, message = msqueue.get() 
-                if timestamp + 30 > time.time():
-                    time.sleep(time.time() - timestamp + 30)
-                TextToSpeech.speak(message)
-                time.sleep(3)
-                ## need to think about the duplicate message. For demoday, make sure there aren't multiple messages 
-    '''
-
-######################################################################################################################################################
-
+      
 #### MAIN ####
 if __name__ == '__main__':
     client = PiClient()
@@ -192,9 +178,11 @@ if __name__ == '__main__':
     # Main loop for RPi    
     while(True):
         
+        #print("sensor is off")
+        
         if GPIO.input(11): # If the PIR sensor is giving a HIGH signal
             
-            print("PIR sensor")
+            print("PIR triggered!!!!!")
             
             timestamp = time.time()
             
@@ -202,7 +190,7 @@ if __name__ == '__main__':
             img = np.empty((480, 640, 3), dtype=np.uint8)
             client.camera.capture(img, 'rgb')
             
-            print("taking a pic")
+            #print("taking a pic")
             
             image_temp = img.astype(np.float64)
             image_64 = base64.b64encode(image_temp).decode('ascii')
@@ -210,7 +198,9 @@ if __name__ == '__main__':
             client.prepare_and_process(client.NODE_ID, timestamp, image_64, client.shape)
             
             # sleep because of the sensor delay
-            time.sleep(20)
+            # clear the sensor
+            
+            time.sleep(2)
     
     
 
