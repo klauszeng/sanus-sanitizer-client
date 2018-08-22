@@ -85,14 +85,16 @@ class dispenser_thread(threading.Thread):
                 cur_time = time.time()
                 payload, headers, url = self.payload_queue.get()
                 respond = requests.post(url, json=payload, headers=headers)
-                if respond:
+                try:
                     self.logger.info('payload received by http thread,' +
                         'respond return from server in: %f s. Status: %s'
                         ,time.time() - cur_time, respond.json()["Status"]) # beaware respond type 
-                else:
-                    # TODO
-                    # Code on raspberry pi
-                    # Import Image 
+                except:
+                    self.image = np.array(Image.open('luka.jpg')) #load prepared image 
+                    image_temp = self.image.astype(np.float64)
+                    image_64 = base64.b64encode(image_temp).decode('ascii')
+                    payload['Image'] = image_64 
+                    respond = requests.post(url, json=payload, headers=headers)
 
             # Comment out for demo day
             # look into 
