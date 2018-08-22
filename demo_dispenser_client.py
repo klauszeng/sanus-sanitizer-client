@@ -1,7 +1,7 @@
 import sys, os, time, json, threading, queue, requests, io, base64, picamera, logging
 import numpy as np 
-import RPi.GPIO as GPIO
-from helper_functions import proximity 
+import RPi.GPIO as GPIO 
+from PIL import Image
 
 class DispenserClient:
     def __init__(self):
@@ -21,15 +21,14 @@ class DispenserClient:
         self.logger.addHandler(handler)
 
         # camera 
-        self.camera = picamera.PiCamera()
-        self.camera.resolution = (640, 480) # 640x480,1296x730,640x1080, 1920x1088
-        self.url = 'http://192.168.0.106:5000/sanushost/api/v1.0/entry_img' ## Input
-        self.node_id = 'demo_entry'
+        #self.camera = picamera.PiCamera()
+        #self.camera.resolution = (640, 480) # 640x480,1296x730,640x1080, 1920x1088
+        self.url = 'http://192.168.0.106:5000/sanushost/api/v1.0/sanitizer_img' ## Input
+        self.node_id = 'demo_sanitizer'
         self.shape = '(480, 640, 3)' 
-        self.image = np.empty((480, 640, 3), dtype=np.uint8)
-        self.camera.start_preview(fullscreen=False, window = (0,0,0,0)) #100 20 640 480
-        self.logger.debug(
-            'dispenser client camera initialized, start_preview executed')
+        #self.image = np.empty((480, 640, 3), dtype=np.uint8)
+        #self.camera.start_preview(fullscreen=False, window = (100,20,0,0)) #100 20 640 480
+        self.logger.debug('dispenser client camera initialized, start_preview executed')
         
         # GPIO - LED & Distance Sensor
         GPIO.setwarnings(False)
@@ -50,16 +49,15 @@ class DispenserClient:
         self.logger.debug('dispenser client post thread initialized')
 
     def capture(self):
-        self.camera.capture(self.image, 'rgb')
+        #self.camera.capture(self.image, 'rgb')
+        self.image = np.array(Image.open('luka.jpg')) 
         image_temp = self.image.astype(np.float64)
         image_64 = base64.b64encode(image_temp).decode('ascii')
-        payload = {'NodeID': self.node_id, 'Timestamp': time.time(),
-             'Image': image_64, 'Shape': self.shape}
+        
+        payload = {'NodeID': self.node_id, 'Timestamp': time.time(),'Image': image_64, 'Shape': self.shape}
         headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
-       
- self.payload_queue.put((payload, headers, self.url))
+        self.payload_queue.put([payload, headers, self.url])
         self.logger.debug('payload: %s, headers: %s', str(payload), str(headers))
-        time.sleep(2)
 
     def read_distance(self):
         return self.sensor.read_distance() #return an int
@@ -71,8 +69,7 @@ class dispenser_thread(threading.Thread):
         self.logger = logging.getLogger('dispenser sub-loop logger')
         handler = logging.FileHandler('dispenser_thead.log')
         handler.setLevel(logging.INFO)
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
@@ -89,10 +86,10 @@ class dispenser_thread(threading.Thread):
                 cur_time = time.time()
                 payload, headers, url = self.payload_queue.get()
                 respond = requests.post(url, json=payload, headers=headers)
-                self.logger.info('payload received by http thread,' +
-                    'respond return from server in: %f s. Status: %s', 
-                        time.time() - cur_time, str(respond.json()["Status"])) # beaware respond type 
-
+                try:
+                    self.logger.info('payload received by http thread respond return from server in: %f s. Status: %s', time.time() - cur_time, str(respond.json()["Status"])) # beaware respond type 
+                except:
+                    continue
             '''
             if self.payload_queue.qsize():
                 payload, headers, url = self.payload_queue.get()
@@ -131,8 +128,7 @@ if __name__ == "__main__":
     logger = logging.getLogger('main dispenser logger')
     handler = logging.FileHandler('main.log')
     handler.setLevel(logging.INFO)
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
@@ -151,7 +147,6 @@ if __name__ == "__main__":
             GPIO.output(23, True)
             cur_time = time.time()
             respond = client.capture()
-            logger.info('capture successfully, camera captured images returns in:' +
-                 '%f s, now forwarding payload to http thread.', time.time() - cur_time)
+            logger.info('capture successfully, camera captured images returns in: %f s, now forwarding payload to http thread.', time.time() - cur_time)
             GPIO.output(23, False)
     sys.exit()

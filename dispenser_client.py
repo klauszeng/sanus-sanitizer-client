@@ -56,7 +56,6 @@ class DispenserClient:
         headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
         self.payload_queue.put([payload, headers, self.url])
         self.logger.debug('payload: %s, headers: %s', str(payload), str(headers))
-        time.sleep(2)
 
     def read_distance(self):
         return self.sensor.read_distance() #return an int
@@ -85,8 +84,10 @@ class dispenser_thread(threading.Thread):
                 cur_time = time.time()
                 payload, headers, url = self.payload_queue.get()
                 respond = requests.post(url, json=payload, headers=headers)
-                self.logger.info('payload received by http thread respond return from server in: %f s. Status: %s', time.time() - cur_time, str(respond.json()["Status"])) # beaware respond type 
-
+                try:
+                    self.logger.info('payload received by http thread respond return from server in: %f s. Status: %s', time.time() - cur_time, str(respond.json()["Status"])) # beaware respond type 
+                except:
+                    continue
             '''
             if self.payload_queue.qsize():
                 payload, headers, url = self.payload_queue.get()
