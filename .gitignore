@@ -5,3 +5,4 @@ model/dont_keep/
 *.log~
 .DS_Store
 helper_functions/
+daemon_thread_count.py
