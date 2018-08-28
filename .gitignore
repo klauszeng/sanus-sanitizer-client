@@ -4,3 +4,4 @@ model/dont_keep/
 *.py~
 *.log~
 .DS_Store
+helper_functions/

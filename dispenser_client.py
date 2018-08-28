@@ -14,8 +14,7 @@ class DispenserClient:
         handler = logging.FileHandler('dispenser_object.log')
         handler.setLevel(logging.INFO)
         ## create a logging format: time - name of logger - level - message
-        formatter = logging
-            .Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
         handler.setFormatter(formatter)
         ## add the handlers to the logger
         self.logger.addHandler(handler)
@@ -33,8 +32,8 @@ class DispenserClient:
         # GPIO - LED & Distance Sensor
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(18, GPIO.OUT)
-        GPIO.setup(23, GPIO.OUT)
+        GPIO.setup(18, GPIO.OUT)#red
+        GPIO.setup(23, GPIO.OUT)#green
         GPIO.setup(4, GPIO.IN)
         self.logger.debug('dispenser client GPIO check')
 
@@ -52,7 +51,7 @@ class DispenserClient:
         self.camera.capture(self.image, 'rgb')
         image_temp = self.image.astype(np.float64)
         image_64 = base64.b64encode(image_temp).decode('ascii')
-        payload = {'NodeID': self.node_id, 'Timestamp': time.time()
+        payload = {'NodeID': self.node_id, 'Timestamp': time.time() - 1175
             ,'Image': image_64, 'Shape': self.shape}
         headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
         self.payload_queue.put((payload, headers, self.url)) # dispenser thread
@@ -66,8 +65,7 @@ class dispenser_thread(threading.Thread):
         self.logger = logging.getLogger('dispenser sub-loop logger')
         handler = logging.FileHandler('dispenser_thead.log')
         handler.setLevel(logging.INFO)
-        formatter = logging
-            .Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
@@ -89,12 +87,12 @@ class dispenser_thread(threading.Thread):
                         'respond return from server in: %f s. Status: %s'
                         ,time.time() - cur_time, respond.json()["Status"]) # beaware respond type 
                 except:
-                    self.image = np.array(Image.open('luka.jpg')) #load prepared image 
-                    image_temp = self.image.astype(np.float64)
-                    image_64 = base64.b64encode(image_temp).decode('ascii')
-                    payload['Image'] = image_64 
-                    respond = requests.post(url, json=payload, headers=headers)
-
+                   # self.image = np.array(Image.open('luka.jpg')) #load prepared image 
+                   # image_temp = self.image.astype(np.float64)
+                   # image_64 = base64.b64encode(image_temp).decode('ascii')
+                   # payload['Image'] = image_64 
+                   # respond = requests.post(url, json=payload, headers=headers)
+                    continue
             # Comment out for demo day
             # look into 
             ''' 
@@ -136,8 +134,7 @@ if __name__ == "__main__":
     logger = logging.getLogger('main dispenser logger')
     handler = logging.FileHandler('main.log')
     handler.setLevel(logging.INFO)
-    formatter = logging
-        .Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
@@ -148,18 +145,20 @@ if __name__ == "__main__":
     ''#Main loop
     while 1:
         try:
-            if GPIO.input(21):
-                GPIO.output(18, True)
+            if GPIO.input(4):
+                GPIO.output(23, True)
                 time.sleep(0.25)
-                GPIO.output(18, False)
+                GPIO.output(23, False)
                 time.sleep(0.25)
             else:
-                GPIO.output(23, True)
+                GPIO.output(18, True)
                 cur_time = time.time()
                 respond = client.capture()
                 logger.info('capture successfully, camera captured images returns in:' +
                     '%f s, now forwarding payload to http thread.', time.time() - cur_time)
-                GPIO.output(23, False)
+                GPIO.output(18, False)
+                #os.system("aplay thanks.wav")
+                time.sleep(2)
         except KeyboardInterrupt:
             logger.info("KeyboardInterrupt")
             sys.exit()
