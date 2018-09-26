@@ -32,8 +32,8 @@ class DispenserClient:
         # GPIO - LED & Distance Sensor
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(18, GPIO.OUT)#red
-        GPIO.setup(23, GPIO.OUT)#green
+        #GPIO.setup(18, GPIO.OUT)#red
+        #GPIO.setup(23, GPIO.OUT)#green
         GPIO.setup(4, GPIO.IN)
         self.logger.debug('dispenser client GPIO check')
 
@@ -146,17 +146,17 @@ if __name__ == "__main__":
     while 1:
         try:
             if GPIO.input(4):
-                GPIO.output(23, True)
-                time.sleep(0.25)
-                GPIO.output(23, False)
+                #GPIO.output(23, True)
+                #time.sleep(0.25)
+                #GPIO.output(23, False)
                 time.sleep(0.25)
             else:
-                GPIO.output(18, True)
+                #GPIO.output(18, True)
                 cur_time = time.time()
                 respond = client.capture()
                 logger.info('capture successfully, camera captured images returns in:' +
                     '%f s, now forwarding payload to http thread.', time.time() - cur_time)
-                GPIO.output(18, False)
+                #GPIO.output(18, False)
                 #os.system("aplay thanks.wav")
                 time.sleep(2)
         except KeyboardInterrupt:

@@ -50,7 +50,7 @@ class DispenserClient:
 
     def capture(self):
         #self.camera.capture(self.image, 'rgb')
-        self.image = np.array(Image.open('luka.jpg')) 
+        self.image = np.array(Image.open('helper_functions/luka.jpg')) 
         image_temp = self.image.astype(np.float64)
         image_64 = base64.b64encode(image_temp).decode('ascii')
         
