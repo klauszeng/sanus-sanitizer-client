@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 model/dont_keep/
 *.pyc
 *.log
@@ -5,3 +6,7 @@ model/dont_keep/
 *.log~
 .DS_Store
 helper_functions/
+=======
+# OS Gen files
+*.py~
+>>>>>>> a5d74c44c3fe6f0ccf03e3c78437b52ae53e45ff
