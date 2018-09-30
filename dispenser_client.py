@@ -1,4 +1,4 @@
-import sys, os, time, json, threading, queue, requests, io, base64, picamera, logging
+import sys, os, time, json, threading, queue, requests, io, base64, picamera, logging, random
 import numpy as np 
 import RPi.GPIO as GPIO
 from PIL import Image
@@ -58,6 +58,8 @@ class DispenserClient:
         self.logger.debug('payload: %s, headers: %s', str(payload), str(headers))
 
 class http_thread(threading.Thread):
+
+
     def __init__(self, name, payload_queue):
         # Logger
         logging.basicConfig(level=logging.INFO)
@@ -80,6 +82,15 @@ class http_thread(threading.Thread):
         self.alert.start()
         self.logger.debug('dispenser client post thread initialized')
 
+        # Variables
+        self.type = 'Dispenser'
+        self.unit = 'Surgical intensive care'
+        self.staffID = random.randint(1,10)
+        self.nodeID = random.randint(1,10)
+        self.room_number = self.nodeID
+        self.staff_title = None
+        self.response_type = None
+        self.response_message = None
 
     def run(self):
         while 1:
@@ -87,6 +98,21 @@ class http_thread(threading.Thread):
             if self.payload_queue.qsize():
                 payload, headers, url = self.payload_queue.get()
                 respond = requests.post(url, json=payload, headers=headers).json()["Status"]
+                #Druid Injection
+                print (requests.post(
+                    'http://192.168.0.106:8200/v1/post/hospital', 
+                    json={'type': current_type, 
+                        'staffID': staff_ID_generator(),
+                        'nodeID': node_ID_generator(), 
+                        'unit': random.choice(units),  
+                        'room_number': room_number_generator(),
+                        'staff_title': random.choice(staff_titles),
+                        'response_type': current_type,
+                        'response_message': random.choice(responses[current_type]),
+                        'time': '2018-09-17T09:06:01.080277'#random_date() #datetime.utcnow().isoformat()
+                        }, 
+                    headers={'Content-Type' : 'application/json'}
+                    ).json())
                 if respond == 'timeout': #HTTP protocol return message looks different, change this
                     self.storage_queue.put(payload, headers)
                     self.logger.debug('payload moved from payload queue to storage due to %s', respond)
