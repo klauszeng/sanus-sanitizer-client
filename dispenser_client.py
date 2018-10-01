@@ -1,4 +1,4 @@
-import sys, os, time, json, threading, queue, requests, io, base64, picamera, logging, random
+import sys, os, time, json, threading, queue, requests, io, base64, picamera, logging, random, datetime
 import numpy as np 
 import RPi.GPIO as GPIO
 from PIL import Image
@@ -109,7 +109,7 @@ class http_thread(threading.Thread):
                         'staff_title': random.choice(staff_titles),
                         'response_type': current_type,
                         'response_message': random.choice(responses[current_type]),
-                        'time': '2018-09-17T09:06:01.080277'#random_date() #datetime.utcnow().isoformat()
+                        'time': datetime.utcnow().isoformat()#random_date() #datetime.utcnow().isoformat()
                         }, 
                     headers={'Content-Type' : 'application/json'}
                     ).json())
