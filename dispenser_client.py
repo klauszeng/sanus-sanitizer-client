@@ -1,4 +1,4 @@
-import sys, os, time, json, threading, queue, requests, io, base64, picamera, logging
+import sys, os, time, json, threading, queue, requests, io, base64, picamera, logging, datetime
 import numpy as np 
 import RPi.GPIO as GPIO
 from PIL import Image
@@ -51,7 +51,7 @@ class DispenserClient:
         self.camera.capture(self.image, 'rgb')
         image_temp = self.image.astype(np.float64)
         image_64 = base64.b64encode(image_temp).decode('ascii')
-        payload = {'NodeID': self.node_id, 'Timestamp': time.time() - 1175
+        payload = {'NodeID': self.node_id, 'Timestamp': time.time()
             ,'Image': image_64, 'Shape': self.shape}
         headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
         self.payload_queue.put((payload, headers, self.url)) # dispenser thread
@@ -154,11 +154,24 @@ if __name__ == "__main__":
                 #GPIO.output(18, True)
                 cur_time = time.time()
                 respond = client.capture()
-                logger.info('capture successfully, camera captured images returns in:' +
-                    '%f s, now forwarding payload to http thread.', time.time() - cur_time)
-                #GPIO.output(18, False)
-                #os.system("aplay thanks.wav")
-                time.sleep(2)
+                #Druid
+                try:
+                    payload = {'type' : 'Dispenser',
+                        'staffID' : 'None', 'nodeID' : 1,
+                        'unit' : 'Neonatal intensive care',
+                        'room_number' : 1, 'staff_title' : 'None',
+                        'response_type' : 'None', 'response_message' : 'None',
+                        'time' : datetime.datetime.utcnow().isoformat() }
+                    result = requests.post('http://192.168.0.105:8200/v1/post/hospital', json=payload,
+                    headers={'Content-Type' : 'application/json'}).json()
+                    print (result)
+                	#logger.info('capture successfully, camera captured images returns in:' +
+                	#    '%f s, now forwarding payload to http thread.', time.time() - cur_time)
+                	#GPIO.output(18, False)
+                	#os.system("aplay thanks.wav")
+                    time.sleep(2)
+                except:
+                    time.sleep(2)
         except KeyboardInterrupt:
             logger.info("KeyboardInterrupt")
             sys.exit()
