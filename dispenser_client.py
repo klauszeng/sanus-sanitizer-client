@@ -11,7 +11,8 @@ dispenser client(main loop)
 '''
 
 class DispenserClient:
-    def __init__(self, node_id, type='Dispenser', unit='Surgical Intensive Care'):
+    def __init__(self, node_id, type='Dispenser', unit='Surgical Intensive Care', 
+            url='http://192.168.0.106:5000/sanushost/api/v1.0/sanitizer_img'):
         ###########################################################################################
         '''
         Initialize all local variables and functions
@@ -31,7 +32,7 @@ class DispenserClient:
         # camera 
         self.camera = picamera.PiCamera()
         self.camera.resolution = (640, 480) # 640x480,1296x730,640x1080, 1920x1088
-        self.url = 'http://192.168.0.106:5000/sanushost/api/v1.0/sanitizer_img' ## Input
+        self.url = url ## Input
         self.node_id = node_id
         self.shape = '(480, 640, 3)' 
         self.image = np.empty((480, 640, 3), dtype=np.uint8)
@@ -65,6 +66,15 @@ class DispenserClient:
         self.payload_queue.put((payload, headers, self.url)) # dispenser thread
         self.logger.debug('payload: %s, headers: %s', str(payload), str(headers))
 
+    def update_url(self, new_url):
+        self.url = new_url
+
+    def update_node_id(self, new_node_id):
+        self.node_id = new_node_id
+
+    def update_unit(self, new_unit):
+        self.unit = new_unit
+
 class http_thread(threading.Thread):
     def __init__(self, name, node_id, type, unit, payload_queue):
         ###########################################################################################
@@ -92,7 +102,7 @@ class http_thread(threading.Thread):
         self.druid_headers = {'Content-Type' : 'application/json'}
 
         # second_http thread instantiate 
-        self.second_http = second_http_thread("second http thread", node_id, type, unit, self.storage_queue)
+        self.second_http = second_http_thread("http thread", node_id, type, unit, self.storage_queue)
         self.second_http.daemon = True 
         self.second_http.start()
         self.logger.debug('dispenser client second http thread initialized')
@@ -191,7 +201,7 @@ if __name__ == "__main__":
     client = DispenserClient('demo_sanitizer')
     logger.info('dispenser client initialized')
 
-    ''#Main loop
+    #Main loop
     while 1:
         try:
             if GPIO.input(4):
