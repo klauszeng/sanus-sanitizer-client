@@ -80,10 +80,10 @@ class http_thread(threading.Thread):
         ###########################################################################################
         # Logger
         logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger('http')
+        self.logger = logging.getLogger('http thread(First attempt)')
         handler = logging.FileHandler('http_thead.log')
         handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
         ###########################################################################################
@@ -97,10 +97,6 @@ class http_thread(threading.Thread):
         self.payload_queue = payload_queue
         self.storage_queue = queue.Queue()
 
-        ## Druid
-        self.druid_url = 'http://192.168.0.106:8200/v1/post/hospital'
-        self.druid_headers = {'Content-Type' : 'application/json'}
-
         # second_http thread instantiate 
         self.second_http = second_http_thread("http thread", node_id, type, unit, self.storage_queue)
         self.second_http.daemon = True 
@@ -112,34 +108,23 @@ class http_thread(threading.Thread):
         while 1:
             if self.payload_queue.qsize():
                 payload, headers, url = self.payload_queue.get()
-                result = requests.post(url, json=payload, headers=headers)
-                status = result.json()['Status']
-                code = result.status_code
-
-                ## Success, either face or no face detected
-                if code == '200': 
-                    ## Inject data to druid
-                    self.logger.info(druid_injection().json())
-                else: ## Failure, including no return, bad request, bad gateway, overload etc
-                    self.storage_queue.put(payload, headers, url)
-                    self.logger.debug('http_thread: Exit due to error: %s. Will try again in 5s', code)
-
-
-    def druid_injection(self):
-        payload = {'type': self.type, 'staffID': None,
-                'nodeID': self.node_id, 'unit': self.unit,  
-                'room_number': None, 'staff_title': None,
-                'response_type': None, 'response_message': None,
-                'time': datetime.utcnow().isoformat()#random_date() #datetime.utcnow().isoformat()
-                }
-        return requests.post(self.druid_url, json=payload, headers=self.druid_headers)
+                try:
+                    result = requests.post(url, json=payload, headers=headers)
+                    code = result.status_code
+                    if code == 200:
+                        self.logger.info('HTTP request received. ' + result.json()["Status"])
+                    else:
+                        self.storage_queue.put((payload, headers, url))
+                except:
+                    self.logger.info("Failed to establish connection with server. Try again in 5s.")
+                    self.storage_queue.put((payload, headers, url))
 
 class second_http_thread(threading.Thread):
-    def __init__(self, name, node_id, type, unit, payload_queue):
+    def __init__(self, name, node_id, type, unit, storage_queue):
         ###########################################################################################
         # Logger
         logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger('second_http')
+        self.logger = logging.getLogger('http thread(Second attempt)')
         handler = logging.FileHandler('second_http.log')
         handler.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
@@ -154,37 +139,24 @@ class second_http_thread(threading.Thread):
         self.type = type
         self.unit = unit
         self.storage_queue = storage_queue
- 
-        ## Druid
-        self.druid_url = 'http://192.168.0.106:8200/v1/post/hospital'
-        self.druid_headers = {'Content-Type' : 'application/json'}
 
     def run(self):
         while 1:
             if self.storage_queue.qsize(): 
                 time.sleep(5) # wait for 5 seconds before second attempt 
-                result = requests.post(url, json=payload, headers=headers)
-                status = result.json()['Status']
-                code = result.status_code
-
-                if code == '200':
-                    ## Inject data to druid
-                    self.logger.info(druid_injection().json())
-                else:
-                    ## If more attempts are needed, put payload back to storage queue
-                    self.logger.debug('second_http_thread: Exit due to error: %s.', code)
-
-
-    def druid_injection(self):
-        payload = {'type': self.type, 'staffID': None,
-                'nodeID': self.node_id, 'unit': self.unit,  
-                'room_number': None, 'staff_title': None,
-                'response_type': None, 'response_message': None,
-                'time': datetime.utcnow().isoformat()#random_date() #datetime.utcnow().isoformat()
-                }
-        return requests.post(self.druid_url, json=payload, headers=self.druid_headers)
-
-
+                payload, headers, url = self.storage_queue.get()
+                try:
+                    result = requests.post(url, json=payload, headers=headers) 
+                    code = result.status_code
+                    if code == 200:
+                        self.logger.info("second attempt successful: " + result.json()["Status"])
+                    else:
+                        self.logger.info("second attempt failed with code: " + str(code))
+                        self.storage_queue.put((payload, headers, url))
+                except:
+                    self.storage_queue.put((payload, headers, url))
+                    self.logger.info("Failed to establish connection with server again. Try again in 30s.")
+                    time.sleep(25)
 if __name__ == "__main__":
     
     ###########################################################################################
@@ -205,18 +177,17 @@ if __name__ == "__main__":
     while 1:
         try:
             if GPIO.input(4):
-                # GPIO.output(23, True)
-                # time.sleep(0.25)
-                # GPIO.output(23, False)
-                # time.sleep(0.25)
-                pass
+                #GPIO.output(23, True)
+                #time.sleep(0.25)
+                #GPIO.output(23, False)
+                time.sleep(0.25)
             else:
-                # GPIO.output(18, True)
+                #GPIO.output(18, True)
                 cur_time = time.time()
-                result = client.capture()
+                respond = client.capture()
                 logger.info('capture successfully, camera captured images returns in:' +
                     '%f s, now forwarding payload to http thread.', time.time() - cur_time)
-                # GPIO.output(18, False)
+                #GPIO.output(18, False)
                 #os.system("aplay thanks.wav")
                 time.sleep(2)
         except KeyboardInterrupt:
