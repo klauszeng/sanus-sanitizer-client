@@ -9,18 +9,18 @@ dispenser client(main loop)
     --> http thread (sub loop of dispenser client, timely http request )
         --> second http thread (sub loop of http thread, less urgent request)
 '''
-
+try: 
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+except:
+        raise Exception("config.ini file missing.")
+        
 class DispenserClient:
-    def __init__(self, config='config.ini'):
-        try: 
-            config = configparser.ConfigParser()
-            config.read(config)
-        except:
-            raise Exception("config.ini file missing.")
-
+    def __init__(self, ):
+       
         ## Logger
-        level = self.log_level(config['DEBUG']['LogLevel'])
-        self.logger = logging.getLogger(config['PROPERTY']['Type'])
+        level = self.log_level(config.get('DEBUG', 'LogLevel'))
+        self.logger = logging.getLogger(config.get('PROPERTY', 'Type'))
         self.logger.setLevel(level)
         ch = logging.StreamHandler()
         ch.setLevel(level)
@@ -29,33 +29,40 @@ class DispenserClient:
         self.logger.addHandler(ch)
 
         #Route 
-        self.route = config['SERVER']['Route']
+        self.route = config.get('SERVER', 'Route')
 
         #Camera 
+        resolution = config.get('CAMERA', 'Resolution')
+        node_id = config.get('PROPERTY', 'Id')
+        shape = config.get('CAMERA', 'Shape')
+        width = config.getint('CAMERA', 'Width')
+        height = config.getint('CAMERA', 'Height')
+        channel = config.getint('CAMERA', 'Channel')
         self.camera = picamera.PiCamera()
-        self.camera.resolution = config['CAMERA']['Resolution']
-        self.node_id = config['PROPERTY']['Id']
-        self.shape = config['Camera']['Shape']
-        size = (config['Camera']['Width'], config['Camera']['Height'], config['Camera']['Channel'])
+        self.camera.resolution = resolution
+        self.node_id = node_id
+        self.shape = shape
+        size = (width, height, channel)
         self.image = np.empty(size, dtype=np.uint8)
-        self.camera.start_preview(fullscreen=int(cofnig['Camera']['FullScreen']), window = (100,20,0,0))
-        self.logger.debug('dispenser client camera initialized, start_preview executed')
+        self.camera.start_preview(fullscreen=False, window = (100,20,0,0))
+        self.logger.info('dispenser client camera initialized, start_preview executed')
         
         # GPIO - LED & Distance Sensor
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(4, GPIO.IN) #motion sensor
-        self.logger.debug('dispenser client GPIO check')
+        self.logger.info('dispenser client GPIO check')
 
         # temporary data structure for storage
         self.payload_queue =  queue.Queue() # If length no supply for queue, it's dynamics
-        self.logger.debug('dispenser client payload queue initialized') 
+        self.logger.info('dispenser client payload queue initialized') 
 
         # http thread instantiate 
+        unit = config.get('PROPERTY', 'Unit')
         self.http = http_thread("http thread", self.node_id, type, unit, self.payload_queue)
         self.http.daemon = True 
         self.http.start()
-        self.logger.debug('dispenser client http thread initialized')
+        self.logger.info('dispenser client http thread initialized')
 
     def log_level(self, level):
         if level == 'Info':
@@ -70,7 +77,6 @@ class DispenserClient:
         payload = {'NodeID': self.node_id, 'Timestamp': time.time() ,'Image': image_64, 'Shape': self.shape}
         headers = {'Content_Type': 'application/json', 'Accept': 'text/plain'}
         self.payload_queue.put((payload, headers, self.route)) # dispenser thread
-        self.logger.debug('payload: %s, headers: %s', str(payload), str(headers))
 
     def update_route(self, new_route):
         self.route = new_route
@@ -85,13 +91,14 @@ class http_thread(threading.Thread):
     def __init__(self, name, node_id, type, unit, payload_queue):
         ###########################################################################################
         # Logger
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger('http thread(First attempt)')
-        handler = logging.FileHandler('http_thead.log')
-        handler.setLevel(logging.INFO)
+        level = self.log_level(config.get('DEBUG', 'LogLevel'))
+        self.logger = logging.getLogger('http thread')
+        self.logger.setLevel(level)
+        ch = logging.StreamHandler()
+        ch.setLevel(level)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
+        ch.setFormatter(formatter)
+        self.logger.addHandler(ch)
         ###########################################################################################
 
         # Initialize thread
@@ -107,8 +114,13 @@ class http_thread(threading.Thread):
         self.second_http = second_http_thread("http thread", node_id, type, unit, self.storage_queue)
         self.second_http.daemon = True 
         self.second_http.start()
-        self.logger.debug('dispenser client second http thread initialized')
-
+        self.logger.info('dispenser client second http thread initialized')
+        
+    def log_level(self, level):
+        if level == 'Info':
+            return logging.INFO
+        else:
+            return logging.DEBUG
 
     def run(self):
         while 1:
@@ -129,13 +141,14 @@ class second_http_thread(threading.Thread):
     def __init__(self, name, node_id, type, unit, storage_queue):
         ###########################################################################################
         # Logger
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger('http thread(Second attempt)')
-        handler = logging.FileHandler('second_http.log')
-        handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
+        level = self.log_level(config.get('DEBUG', 'LogLevel'))
+        self.logger = logging.getLogger('second http thread')	
+        self.logger.setLevel(level)
+        ch = logging.StreamHandler()
+        ch.setLevel(level)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        self.logger.addHandler(ch)
         ###########################################################################################
 
         # Initialize thread
@@ -145,7 +158,12 @@ class second_http_thread(threading.Thread):
         self.type = type
         self.unit = unit
         self.storage_queue = storage_queue
-
+    def log_level(self, level):
+        if level == 'Info':
+            return logging.INFO
+        else:
+            return logging.DEBUG
+            
     def run(self):
         while 1:
             if self.storage_queue.qsize(): 
@@ -167,7 +185,7 @@ class second_http_thread(threading.Thread):
 if __name__ == "__main__":
 
     # Initialization
-    client = DispenserClient('demo_sanitizer')
+    client = DispenserClient()
 
     #Main loop
     while 1:
@@ -177,9 +195,6 @@ if __name__ == "__main__":
             else:
                 cur_time = time.time()
                 respond = client.capture()
-                logger.info('capture successfully, camera captured images returns in:' +
-                    '%f s, now forwarding payload to http thread.', time.time() - cur_time)
                 time.sleep(2)
         except KeyboardInterrupt:
-            logger.info("KeyboardInterrupt")
             sys.exit()
