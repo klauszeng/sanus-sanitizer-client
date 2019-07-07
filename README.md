@@ -1,13 +1,44 @@
-# Install Dependencies for dispenser node
-Run '''pip install -r requirements.txt'''
+# Sanus Solution Dispenser Unit
 
-# Issues/functions to address
+A deployment script for dispenser unit
+
+## Getting Started
+
+Clone this project
+
+```
+git clone https://github.com/sanus-solutions/sanus_face_server.git
+```
+
+### Prerequisites(Current version)
+
+- python3 
+- camera (Arducam)
+- motion sensor(GPIO)
+
+### Installing
+Note: Packages in requirements may be outdated/depricated.
+```
+pip install -r requirements.txt
+```
+
+## Running
+If unit is NOT connected to internet, do:
+```
+sudo date -s "new_date_time_string"
+```
+Then:
+``` 
+python3 dispenser_client.py
+```
+
+## Issues/functions to address
 1. Objects in queue reach maxium. Give up new or old data
 2. Register as a new node 
 3. Hardware self check/self diagnose 
 4. Add a route to report error 
 
-# config.ini convention
+## config.ini convention
 [PROPERTY]
 Type: Dispenser
 Unit: Surgical Intensive Care
@@ -27,42 +58,28 @@ Height: 640
 Channel: 3
 FullScreen: 0
 
-# Example usage 
-```
-if __name__ == "__main__":
-    
-    ###########################################################################################
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger('main dispenser logger')
-    handler = logging.FileHandler('main.log')
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') 
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    ###########################################################################################
+## Authors
 
-    # Initialization
-    client = DispenserClient('demo_sanitizer')
-    logger.info('dispenser client initialized')
+Klaus
 
-    #Main loop
-    while 1:
-        try:
-            if GPIO.input(4):
-                #GPIO.output(23, True)
-                #time.sleep(0.25)
-                #GPIO.output(23, False)
-                time.sleep(0.25)
-            else:
-                #GPIO.output(18, True)
-                cur_time = time.time()
-                respond = client.capture()
-                logger.info('capture successfully, camera captured images returns in:' +
-                    '%f s, now forwarding payload to http thread.', time.time() - cur_time)
-                #GPIO.output(18, False)
-                #os.system("aplay thanks.wav")
-                time.sleep(2)
-        except KeyboardInterrupt:
-            logger.info("KeyboardInterrupt")
-            sys.exit()
-```
+## License
+
+ Copyright (c) <2019> <Sanus Solutions>
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
