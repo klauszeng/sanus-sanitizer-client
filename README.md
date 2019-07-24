@@ -1,54 +1,43 @@
-# Sanus Solution Dispenser Unit
-
-A deployment script for dispenser unit
-
+![PyPI](https://img.shields.io/pypi/pyversions/GPIO.svg?style=plastic)
+# Sanus Solution Dispenser Client Project
+### Prerequisites
+- camera input
+- sensor input
+ 
 ## Getting Started
-
 Clone this project
-
 ```
-git clone https://github.com/sanus-solutions/sanus_face_server.git
+git clone 
+cd 
 ```
-
-### Prerequisites(Current version)
-
-- python3 
-- camera (Arducam)
-- motion sensor(GPIO)
-
 ### Installing
 Note: Packages in requirements may be outdated/depricated.
 ```
 pip install -r requirements.txt
 ```
-
 ## Running
-If unit is NOT connected to internet, do:
-```
-sudo date -s "new_date_time_string"
-```
-Then:
 ``` 
 python3 dispenser_client.py
 ```
 
 ## Issues/functions to address
-1. Objects in queue reach maxium. Give up new or old data
-2. Register as a new node 
-3. Hardware self check/self diagnose 
-4. Add a route to report error 
+1. If pi is not connected to the internet, manually update time by:
+```sh
+sudo date -s "utc time"
+```
 
-## config.ini convention
+## Configuration
+```sh
 [PROPERTY]
 Type: Dispenser
-Unit: Surgical Intensive Care
-Id: SanusOffice01
+Unit: Surgical Intensive Care #example
+Id: SanusOffice01 #example
 
 [SERVER]
-Route: http://192.168.0.106:5000/sanushost/api/v1.0/sanitizer_img
+Route: [http://localhost:5000/sanushost/api/v1.0/sanitizer_img] ## Replace this with the server ip
 
 [DEBUG]
-LogLevel: Debug
+LogLevel: Debug # Edit this to change logger behavior
 
 [CAMERA]
 Resolution: (640, 480)
@@ -56,9 +45,9 @@ Shape: (480, 640, 3)
 Width: 480
 Height: 640
 Channel: 3
-FullScreen: 0
-Rotation: 0
-
+FullScreen: 0 
+Rotation: 0 ## 0 if using pi camera, 180 if using Arducam
+```
 ## Authors
 
 Klaus
