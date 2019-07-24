@@ -1,14 +1,8 @@
-import sys, os, time, json, threading, queue, requests, io, base64, picamera, logging, random, datetime, configparser
+import sys, time, json, threading, queue, requests, io, base64, picamera, logging, datetime, configparser
 import numpy as np 
 import RPi.GPIO as GPIO
 from PIL import Image
 
-'''
-Basic Structure 
-dispenser client(main loop)
-    --> http thread (sub loop of dispenser client, timely http request )
-        --> second http thread (sub loop of http thread, less urgent request)
-'''
 try: 
         config = configparser.ConfigParser()
         config.read('config.ini')
@@ -17,41 +11,11 @@ except:
         
 class DispenserClient:
     def __init__(self, ):
-       
-        ## Logger
-        level = self.log_level(config.get('DEBUG', 'LogLevel'))
-        self.logger = logging.getLogger(config.get('PROPERTY', 'Type'))
-        self.logger.setLevel(level)
-        ch = logging.StreamHandler()
-        ch.setLevel(level)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        ch.setFormatter(formatter)
-        self.logger.addHandler(ch)
 
-        #Route 
         self.route = config.get('SERVER', 'Route')
-
-        #Camera 
-        resolution = config.get('CAMERA', 'Resolution')
-        node_id = config.get('PROPERTY', 'Id')
-        shape = config.get('CAMERA', 'Shape')
-        width = config.getint('CAMERA', 'Width')
-        height = config.getint('CAMERA', 'Height')
-        channel = config.getint('CAMERA', 'Channel')
-        self.camera = picamera.PiCamera()
-        self.camera.resolution = resolution
-        self.node_id = node_id
-        self.shape = shape
-        size = (width, height, channel)
-        self.image = np.empty(size, dtype=np.uint8)
-        self.camera.start_preview(fullscreen=False, window = (100,20,0,0))
-        self.logger.info('dispenser client camera initialized, start_preview executed')
-        
-        # GPIO - LED & Distance Sensor
-        GPIO.setwarnings(False)
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(4, GPIO.IN) #motion sensor
-        self.logger.info('dispenser client GPIO check')
+        self.init_logger()
+        self.init_camera()
+        self.init_ir_sensor()
 
         # temporary data structure for storage
         self.payload_queue =  queue.Queue() # If length no supply for queue, it's dynamics
@@ -64,11 +28,51 @@ class DispenserClient:
         self.http.start()
         self.logger.info('dispenser client http thread initialized')
 
-    def log_level(self, level):
-        if level == 'Info':
-            return logging.INFO
+    def init_logger(self, ):
+        ## Retrive parameters from configuration file
+        debug_level = config.get('DEBUG', 'LogLevel')
+        property_type = config.get('PROPERTY', 'Type')
+
+        ## Logger
+        if debug_level == 'Info':
+            level = logging.INFO
         else:
-            return logging.DEBUG
+            level = logging.DEBUG
+
+        self.logger = logging.getLogger(property_type)
+        self.logger.setLevel(level)
+        ch = logging.FileHandler('dispenser_client.log')
+        ch.setLevel(level)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        self.logger.addHandler(ch)
+
+    def init_camera(self, ):
+        ## Retrive parameters from configuration file 
+        resolution = config.get('CAMERA', 'Resolution')
+        node_id = config.get('PROPERTY', 'Id')
+        shape = config.get('CAMERA', 'Shape')
+        width = config.getint('CAMERA', 'Width')
+        height = config.getint('CAMERA', 'Height')
+        channel = config.getint('CAMERA', 'Channel')
+        rotation = config.getint('CAMERA', 'Rotation')
+
+        ## Camera
+        self.camera = picamera.PiCamera()
+        self.camera.rotation = rotation
+        self.camera.resolution = resolution
+        self.node_id = node_id
+        self.shape = shape
+        size = (width, height, channel)
+        self.image = np.empty(size, dtype=np.uint8)
+        self.camera.start_preview(fullscreen=False, window = (100,20,0,0))
+        self.logger.info('dispenser client camera initialized, start_preview executed')
+
+    def init_ir_sensor(self, ):
+        GPIO.setwarnings(False)
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(4, GPIO.IN) #motion sensor
+        self.logger.info('dispenser client GPIO check')
 
     def capture(self):
         self.camera.capture(self.image, 'rgb')
@@ -94,7 +98,7 @@ class http_thread(threading.Thread):
         level = self.log_level(config.get('DEBUG', 'LogLevel'))
         self.logger = logging.getLogger('http thread')
         self.logger.setLevel(level)
-        ch = logging.StreamHandler()
+        ch = logging.FileHandler('dispenser_client.log')
         ch.setLevel(level)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         ch.setFormatter(formatter)
@@ -129,8 +133,9 @@ class http_thread(threading.Thread):
                 try:
                     result = requests.post(route, json=payload, headers=headers)
                     code = result.status_code
+                    self.logger.debug(result.json())
                     if code == 200:
-                        self.logger.info('HTTP request received. ' + result.json()["Status"])
+                        self.logger.info('HTTP request received.')
                     else:
                         self.storage_queue.put((payload, headers, route))
                 except:
@@ -144,7 +149,7 @@ class second_http_thread(threading.Thread):
         level = self.log_level(config.get('DEBUG', 'LogLevel'))
         self.logger = logging.getLogger('second http thread')	
         self.logger.setLevel(level)
-        ch = logging.StreamHandler()
+        ch = logging.FileHandler('dispenser_client.log')
         ch.setLevel(level)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         ch.setFormatter(formatter)
@@ -158,6 +163,7 @@ class second_http_thread(threading.Thread):
         self.type = type
         self.unit = unit
         self.storage_queue = storage_queue
+
     def log_level(self, level):
         if level == 'Info':
             return logging.INFO
@@ -172,8 +178,9 @@ class second_http_thread(threading.Thread):
                 try:
                     result = requests.post(route, json=payload, headers=headers) 
                     code = result.status_code
+                    self.logger.debug(result.json())
                     if code == 200:
-                        self.logger.info("second attempt successful: " + result.json()["Status"])
+                        self.logger.info("second attempt successful.")
                     else:
                         self.logger.info("second attempt failed with code: " + str(code))
                         self.storage_queue.put((payload, headers, route))
