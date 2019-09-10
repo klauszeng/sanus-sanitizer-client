@@ -17,8 +17,8 @@ class PiCamera:
         self.camera.start_preview(fullscreen = False, window = (100,20,0,0))
 
     def capture(self, ):
-        self.camera.capture(self.image, 'rgb')
-        shape_string = str(self.image.shape)
+        self.camera.capture(image, 'rgb')
+        shape_string = str(image.shape)
         retval, buffer = cv2.imencode('.jpg', self.image)
         image_string = base64.b64encode(buffer)
         return image_string
