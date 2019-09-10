@@ -21,4 +21,4 @@ class PiCamera:
         shape_string = str(image.shape)
         retval, buffer = cv2.imencode('.jpg', self.image)
         image_string = base64.b64encode(buffer)
-        return image_string
+        return image_string, shape_string
