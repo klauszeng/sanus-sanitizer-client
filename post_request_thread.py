@@ -1,8 +1,7 @@
 import threading
 import logging, configparser
 import queue, time 
-import requests, json
-
+import requests, json, base64
 
 class PostRequestThread(threading.Thread):
     def __init__(self, name, node_id, type, unit, queue):
@@ -31,18 +30,17 @@ class PostRequestThread(threading.Thread):
             if self.message_queue.qsize():
                 payload, headers, route = self.message_queue.get()
                 self.logger.info("Payload unpacked.")
-                print(payload, headers, route)
                 try:
                     result = requests.post(route, json=payload, headers=headers)
                     code = result.status_code
                     if code != 200:
                         self.logger.debug(code)
-                        with open('unsend_request.json', 'w') as f:
-                            f.write(json.dumps(payload))
+                        with open('backup/' + str(payload['Timestamp']) + '.txt', 'wb') as f:
+                            f.write(payload['Image'])
                 except Exception as e:
                     self.logger.error("Unexpected error: " + str(e))
-                    with open('unsend_requests.json', 'w') as f:
-                        f.write(json.dumps(payload))
+                    with open('backup/' + str(payload['Timestamp']) + '.txt', 'wb') as f:
+                        f.write(payload['Image'])
 
 if __name__ == "__main__":
     message_queue = queue.Queue()

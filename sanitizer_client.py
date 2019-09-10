@@ -89,10 +89,9 @@ if __name__ == "__main__":
     #Main loop
     while 1:
         try:
-            if GPIO.input(4):
-                time.sleep(0.25)
+            if GPIO.input(4) == 0:
+                time.sleep(0.5)
             else:
-                cur_time = time.time()
                 respond = client.capture()
                 time.sleep(2)
         except KeyboardInterrupt:
