@@ -6,14 +6,14 @@ class PiCamera:
 
     def __init__(self, 
         rotation = 0, 
-        resolution = None,
-        image_size = None,
+        resolution = "640x480",
+        image_size = (480, 640, 3),
         ):
 
         self.camera = picamera.PiCamera()
-        self.camera.rotatioon = rotation 
+        self.camera.rotation = rotation 
         self.camera.resolution = resolution
-        self.image = np.empty(size, dtype = np.uint8)
+        self.image = np.empty(image_size, dtype = np.uint8)
         self.camera.start_preview(fullscreen = False, window = (100,20,0,0))
 
     def capture(self, ):
