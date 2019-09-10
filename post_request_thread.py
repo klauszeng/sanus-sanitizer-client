@@ -8,7 +8,7 @@ class PostRequestThread(threading.Thread):
         ###########################################################################################
         # Logger
         level = logging.DEBUG ## Temporary 
-        self.logger = logging.getLogger('')   
+        self.logger = logging.getLogger('PostRequest')   
         self.logger.setLevel(level)
         ch = logging.FileHandler('log/connection.log')
         ch.setLevel(level)
