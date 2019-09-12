@@ -1,6 +1,6 @@
 *.pyc
-*.log
-*.py~
-*.log~
 .DS_Store
 *.ini
+backup/
+log/
+
