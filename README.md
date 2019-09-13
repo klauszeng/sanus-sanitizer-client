@@ -48,6 +48,46 @@ Channel: 3
 FullScreen: 0 
 Rotation: 0 ## 0 if using pi camera, 180 if using Arducam
 ```
+
+## Start on boot
+### Creating a service
+Create a .service file and copy the following. Edit fields needed.
+```
+[Unit]
+Description=My service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 -u main.py
+WorkingDirectory=/home/pi/myscript
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
+```	
+In this instance, the service would run Python 3 from our working directory  /home/pi/myscript which contains our python program to run main.py.
+
+Copy this file into /etc/systemd/system as root, for example:
+```
+sudo cp myscript.service /etc/systemd/system/myscript.service
+```
+
+Once this has been copied, you can attempt to start the service using the following command:
+```
+sudo systemctl start myscript.service
+```
+Stop it using following command:
+```
+sudo systemctl stop myscript.service
+```
+When you are happy that this starts and stops your app, you can have it start automatically on reboot by using this command:
+```
+sudo systemctl enable myscript.service
+```
+
 ## Authors
 
 Klaus
