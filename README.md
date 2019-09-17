@@ -15,6 +15,31 @@ Note: Packages in requirements may be outdated/depricated.
 ```
 pip install -r requirements.txt
 ```
+
+### Adafruit I2S 3W Stereo Audio Setup 
+1. Running this should update /etc/asound.conf properly.
+```sh
+curl -sS https://raw.githubusercontent.com/adafruit/Raspberry-Pi-Installer-Scripts/master/i2samp.sh | bash
+```
+2. check if desired sound card and device are set as default:
+```sh
+alsamixer 
+aplay -l
+```
+3. Edit ~/.asoundrc and copy&paste the following
+```sh
+pcm.!default {
+	type hw
+	card 0
+}
+
+ctl.!default {
+	type hw
+	card 0 
+}
+```
+
+
 ## Running
 ``` 
 python3 dispenser_client.py
